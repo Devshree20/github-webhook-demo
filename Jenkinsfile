@@ -6,13 +6,12 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-                checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building project...'
+                echo 'Building the project...'
                 bat 'echo Build completed successfully'
             }
         }
@@ -35,6 +34,8 @@ pipeline {
 
     post {
         success {
+            archiveArtifacts artifacts: 'build/build-info.txt', fingerprint: true
+
             echo '================================='
             echo 'CI PIPELINE SUCCESSFUL'
             echo '================================='
@@ -43,18 +44,5 @@ pipeline {
         failure {
             echo 'CI PIPELINE FAILED'
         }
-    }
-}
-post {
-    success {
-        archiveArtifacts artifacts: 'build/build-info.txt', fingerprint: true
-
-        echo '================================='
-        echo 'CI PIPELINE SUCCESSFUL'
-        echo '================================='
-    }
-
-    failure {
-        echo 'CI PIPELINE FAILED'
     }
 }
