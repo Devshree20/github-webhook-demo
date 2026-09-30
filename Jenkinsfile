@@ -6,12 +6,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building the project...'
+                echo 'Building project...'
                 bat 'echo Build completed successfully'
             }
         }
@@ -23,20 +24,24 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Package') {
             steps {
-                echo 'Deployment stage completed'
+                echo 'Creating build package...'
+                bat 'if not exist build mkdir build'
+                bat 'echo Jenkins CI/CD Demo > build\\build-info.txt'
             }
         }
     }
 
     post {
         success {
-            echo 'CI/CD Pipeline completed successfully!'
+            echo '================================='
+            echo 'CI PIPELINE SUCCESSFUL'
+            echo '================================='
         }
 
         failure {
-            echo 'Pipeline failed!'
+            echo 'CI PIPELINE FAILED'
         }
     }
 }
