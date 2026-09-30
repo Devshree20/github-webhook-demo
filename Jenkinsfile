@@ -45,3 +45,16 @@ pipeline {
         }
     }
 }
+post {
+    success {
+        archiveArtifacts artifacts: 'build/build-info.txt', fingerprint: true
+
+        echo '================================='
+        echo 'CI PIPELINE SUCCESSFUL'
+        echo '================================='
+    }
+
+    failure {
+        echo 'CI PIPELINE FAILED'
+    }
+}
