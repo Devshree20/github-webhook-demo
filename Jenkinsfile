@@ -23,16 +23,19 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
-            steps {
-                echo 'Building Docker image...'
-                bat 'docker build -t github-webhook-demo .'
-            }
-        }
-
-        stage('Docker Push') {
+       stage('Docker Build') {
     steps {
-        echo 'Logging in to Docker Hub...'
+        echo 'Building Docker image...'
+
+        bat '''
+        docker build -t devshreebonde/github-webhook-demo:latest .
+        docker tag devshreebonde/github-webhook-demo:latest devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+        '''
+    }
+}
+       stage('Docker Push') {
+    steps {
+        echo 'Pushing Docker images to Docker Hub...'
 
         withCredentials([usernamePassword(
             credentialsId: 'dockerhub-credentials',
@@ -41,25 +44,27 @@ pipeline {
         )]) {
             bat '''
             docker login -u %DOCKER_USERNAME% -p %DOCKER_TOKEN%
+
             docker push devshreebonde/github-webhook-demo:latest
+            docker push devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+
             docker logout
             '''
         }
     }
 }
-
         stage('Docker Deploy') {
-            steps {
-                echo 'Deploying Docker container...'
+    steps {
+        echo 'Deploying versioned Docker container...'
 
-                bat '''
-                docker stop github-webhook-demo-container || exit 0
-                docker rm github-webhook-demo-container || exit 0
-                docker run -d -p 8081:80 --name github-webhook-demo-container github-webhook-demo
-                '''
-            }
-        }
+        bat '''
+        docker stop github-webhook-demo-container || exit 0
+        docker rm github-webhook-demo-container || exit 0
+
+        docker run -d -p 8081:80 --name github-webhook-demo-container devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+        '''
     }
+}
 
     post {
         success {
