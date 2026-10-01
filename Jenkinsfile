@@ -30,6 +30,13 @@ pipeline {
             }
         }
 
+        stage('Docker Push') {
+    steps {
+        echo 'Pushing Docker image to Docker Hub...'
+        bat 'docker push devshreebonde/github-webhook-demo:latest'
+    }
+}
+
         stage('Docker Deploy') {
             steps {
                 echo 'Deploying Docker container...'
