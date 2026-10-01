@@ -11,7 +11,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building the project...'
+                echo 'Building project...'
                 bat 'echo Build completed successfully'
             }
         }
@@ -23,26 +23,35 @@ pipeline {
             }
         }
 
-        stage('Package') {
+        stage('Docker Build') {
             steps {
-                echo 'Creating build package...'
-                bat 'if not exist build mkdir build'
-                bat 'echo Jenkins CI/CD Demo > build\\build-info.txt'
+                echo 'Building Docker image...'
+                bat 'docker build -t github-webhook-demo .'
+            }
+        }
+
+        stage('Docker Deploy') {
+            steps {
+                echo 'Deploying Docker container...'
+
+                bat '''
+                docker stop github-webhook-demo-container || exit 0
+                docker rm github-webhook-demo-container || exit 0
+                docker run -d -p 8081:80 --name github-webhook-demo-container github-webhook-demo
+                '''
             }
         }
     }
 
     post {
         success {
-            archiveArtifacts artifacts: 'build/build-info.txt', fingerprint: true
-
             echo '================================='
-            echo 'CI PIPELINE SUCCESSFUL'
+            echo 'CI/CD PIPELINE SUCCESSFUL'
             echo '================================='
         }
 
         failure {
-            echo 'CI PIPELINE FAILED'
+            echo 'CI/CD PIPELINE FAILED'
         }
     }
 }
