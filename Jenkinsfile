@@ -32,8 +32,19 @@ pipeline {
 
         stage('Docker Push') {
     steps {
-        echo 'Pushing Docker image to Docker Hub...'
-        bat 'docker push devshreebonde/github-webhook-demo:latest'
+        echo 'Logging in to Docker Hub...'
+
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USERNAME',
+            passwordVariable: 'DOCKER_TOKEN'
+        )]) {
+            bat '''
+            docker login -u %DOCKER_USERNAME% -p %DOCKER_TOKEN%
+            docker push devshreebonde/github-webhook-demo:latest
+            docker logout
+            '''
+        }
     }
 }
 
