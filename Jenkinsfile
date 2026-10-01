@@ -1,5 +1,11 @@
 pipeline {
     agent any
+    options {
+    buildDiscarder(logRotator(
+        numToKeepStr: '10',
+        artifactNumToKeepStr: '5'
+    ))
+}
 
     stages {
 
@@ -63,6 +69,12 @@ pipeline {
 
         docker run -d -p 8081:80 --name github-webhook-demo-container devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
         '''
+    }
+}
+        stage('Docker Cleanup') {
+    steps {
+        echo 'Cleaning unused Docker resources...'
+        bat 'docker image prune -f'
     }
 }
 
