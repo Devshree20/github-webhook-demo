@@ -1,11 +1,12 @@
 pipeline {
     agent any
+
     options {
-    buildDiscarder(logRotator(
-        numToKeepStr: '10',
-        artifactNumToKeepStr: '5'
-    ))
-}
+        buildDiscarder(logRotator(
+            numToKeepStr: '10',
+            artifactNumToKeepStr: '5'
+        ))
+    }
 
     stages {
 
@@ -29,54 +30,58 @@ pipeline {
             }
         }
 
-       stage('Docker Build') {
-    steps {
-        echo 'Building Docker image...'
+        stage('Docker Build') {
+            steps {
+                echo 'Building Docker image...'
 
-        bat '''
-        docker build -t devshreebonde/github-webhook-demo:latest .
-        docker tag devshreebonde/github-webhook-demo:latest devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
-        '''
-    }
-}
-       stage('Docker Push') {
-    steps {
-        echo 'Pushing Docker images to Docker Hub...'
+                bat '''
+                docker build -t devshreebonde/github-webhook-demo:latest .
+                docker tag devshreebonde/github-webhook-demo:latest devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+                '''
+            }
+        }
 
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
-            usernameVariable: 'DOCKER_USERNAME',
-            passwordVariable: 'DOCKER_TOKEN'
-        )]) {
-            bat '''
-            docker login -u %DOCKER_USERNAME% -p %DOCKER_TOKEN%
+        stage('Docker Push') {
+            steps {
+                echo 'Pushing Docker images to Docker Hub...'
 
-            docker push devshreebonde/github-webhook-demo:latest
-            docker push devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    bat '''
+                    docker login -u %DOCKER_USERNAME% -p %DOCKER_TOKEN%
 
-            docker logout
-            '''
+                    docker push devshreebonde/github-webhook-demo:latest
+                    docker push devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+
+                    docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Deploy') {
+            steps {
+                echo 'Deploying versioned Docker container...'
+
+                bat '''
+                docker stop github-webhook-demo-container || exit 0
+                docker rm github-webhook-demo-container || exit 0
+
+                docker run -d -p 8081:80 --name github-webhook-demo-container devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
+                '''
+            }
+        }
+
+        stage('Docker Cleanup') {
+            steps {
+                echo 'Cleaning unused Docker resources...'
+                bat 'docker image prune -f'
+            }
         }
     }
-}
-        stage('Docker Deploy') {
-    steps {
-        echo 'Deploying versioned Docker container...'
-
-        bat '''
-        docker stop github-webhook-demo-container || exit 0
-        docker rm github-webhook-demo-container || exit 0
-
-        docker run -d -p 8081:80 --name github-webhook-demo-container devshreebonde/github-webhook-demo:v%BUILD_NUMBER%
-        '''
-    }
-}
-        stage('Docker Cleanup') {
-    steps {
-        echo 'Cleaning unused Docker resources...'
-        bat 'docker image prune -f'
-    }
-}
 
     post {
         success {
@@ -86,7 +91,9 @@ pipeline {
         }
 
         failure {
+            echo '================================='
             echo 'CI/CD PIPELINE FAILED'
+            echo '================================='
         }
     }
 }
